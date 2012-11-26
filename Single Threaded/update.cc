@@ -29,30 +29,33 @@ starting = start;
     // initialize graph
    int D[MAX];
    bool F[MAX];
-   for(i=1; i<=nodes; i++) D[i] = INF;
+   for(i=1; i<=nodes; i++){
+      D[i] = INF;
+      F[i] = 0;
+    }
     D[starting] = 0;
     priority_queue< pii, vector< pii >, comp > Q;
     Q.push(pii(starting, 0));
-    if(F[4] == 1){
-      printf("i have entered the checkpoint\n");
-    }
+//    for(int j = 1; j<=nodes;j++){
+  //    printf("The node %d has been %d\n",j,F[j]);
+   // }
     // dijkstra
     while(!Q.empty()) {
         u = Q.top().first;
         Q.pop();
         if(F[u]) continue;
         sz = G[u].size();
-         printf("visiting from %d:", u);
+       //  printf("visiting from %d:", u);
         for(i=0; i<sz; i++) {
             v = G[u][i].first;
             w = G[u][i].second;
             if(!F[v] && D[u]+w < D[v]) {
-                 printf(" %d,", v);
+     //            printf(" %d,", v);
                 D[v] = D[u] + w;
                 Q.push(pii(v, D[v]));
             }
         }
-         printf("\n");
+        // printf("\n");
         F[u] = 1; // done with u
 
     }
@@ -77,7 +80,7 @@ int main() {
 //        G[v].pb(pii(u, w)); // for undirected
 	}
 	
-	for(i=2;i<=nodes;i++){
+	for(i=1;i<=nodes;i++){
 		printf("*********************** node = %d *************************\n",i);
 		calculate(nodes,edges,i);
 	}

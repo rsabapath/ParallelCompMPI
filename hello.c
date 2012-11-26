@@ -10,6 +10,6 @@ int main(int argc,char *argv[]){
   MPI_Get_processor_name(processor_name,&namelen);
 
   printf("process %d on %s out of %d\n",rank,processor_name,numprocs);
-  MPI_Finalize():
+  MPI_Finalize();
 
   }
