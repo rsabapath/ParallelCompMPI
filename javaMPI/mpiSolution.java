@@ -177,9 +177,6 @@ public class mpiSolution implements Runnable {
 
 	public static int[][] create_graph() {
 		int[][] graph = null;
-		int first;
-		int second;
-		int third;
 
 		Pattern pattern = Pattern.compile("\\d*");
 		BufferedReader in;
@@ -188,30 +185,31 @@ public class mpiSolution implements Runnable {
 
 			String line = in.readLine();
 			String[] items = line.split(" ");
-			int starting = Integer.parseInt(items[0]);
-			int ending = Integer.parseInt(items[1]);
+			int startingNode = Integer.parseInt(items[0]);
+			int endingNode = Integer.parseInt(items[1]);
+			
 			line = in.readLine();
 			items = line.split(" ");
-			first = Integer.parseInt(items[0]);
-			second = Integer.parseInt(items[1]);
-			n = first;
+			int numNodes = Integer.parseInt(items[0]);
+			int numEdges = Integer.parseInt(items[1]);
+			n = numNodes;
+			
 			line = in.readLine();
 			items = line.split(" ");
 			for (int i = 0; i < items.length; i++) {
 				Node node = new Node(Integer.parseInt(items[i]));
 				nodes.add(node);
 			}
-			if (me * (n / size) <= starting && starting < (me + 1) * (n / size)) {
-
-				start = nodes.get(starting % (n / size));
+			if (me * (n / size) <= startingNode && startingNode < (me + 1) * (n / size)) {
+				start = nodes.get(startingNode % (n / size));
 			}
-			if (me * (n / size) <= ending && ending < (me + 1) * (n / size)) {
-				last = nodes.get(ending % (n / size));
+			if (me * (n / size) <= endingNode && endingNode < (me + 1) * (n / size)) {
+				last = nodes.get(endingNode % (n / size));
 			}
-			graph = new int[first][first];
-			next = new int[first][first];
-			for (int i = 0; i < first; i++) {
-				for (int j = 0; j < first; j++) {
+			graph = new int[numNodes][numNodes];
+			next = new int[numNodes][numNodes];
+			for (int i = 0; i < numNodes; i++) {
+				for (int j = 0; j < numNodes; j++) {
 					next[i][j] = 9999;
 					if (i == j) {
 						graph[i][j] = 0;
@@ -223,23 +221,20 @@ public class mpiSolution implements Runnable {
 
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
-				first = Integer.parseInt(items[0]);
-				second = Integer.parseInt(items[1]);
-				third = Integer.parseInt(items[2]);
-				Node node = nodes.get(first % (n / size));
-				if (second > (n / size)) {
-					Node node2 = new Node(second);
-					node.addNext(node2, third);
-
+				int nodeA = Integer.parseInt(items[0]);
+				int nodeB = Integer.parseInt(items[1]);
+				int edgeWeight = Integer.parseInt(items[2]);
+				Node node = nodes.get(nodeA % (n / size));
+				if (nodeB > (n / size)) {
+					Node node2 = new Node(nodeB);
+					node.addNext(node2, edgeWeight);
 				} else {
-					Node node2 = nodes.get(second % (n / size));
-					node.addNext(node2, third);
-
+					Node node2 = nodes.get(nodeB % (n / size));
+					node.addNext(node2, edgeWeight);
 				}
-				graph[first][second] = third;
-				System.out.println("id" + me + "->content:" + first + "--"
-						+ second + "--" + third);
-
+				
+				graph[nodeA][nodeB] = edgeWeight;
+				System.out.println("id" + me + "->content:" + nodeA + "--" + nodeB + "--" + graph[nodeA][nodeB]);
 			}
 
 		} catch (FileNotFoundException e) {
