@@ -38,35 +38,54 @@ public class mpiSolution implements Runnable {
 		int[][] costGraph = new int[n][n];
 	
 
-		List<Path> paths = new ArrayList<Path>();
+		List<Node> accessibleNodes = new ArrayList<Node>(); //all nodes found in this cluster
+		List<Path> paths = new ArrayList<Path>(); //all of the paths found in this cluster
+		paths.add(new Path(start)); //start off with 'path' 0
 		
 		LinkedList<Node> queue = new LinkedList<Node>();
-		queue.add(start);
+		queue.add(start); //start off the queue with node 0
+		
 		
 		
 		while(!queue.isEmpty()){
 			Node current = queue.pop();			
+			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
 			
-			for(Edge e : current.getConnections()){
-				queue.push(e.getB());
-				Path temp = getPath(current, paths);
-				if (temp != null){
-					temp.addNode(e.getB(), e.getCost());
-				}else{
-					paths.add(new Path(current));
+			for (Path p: paths){ //for all of the paths already implemented   
+				for(Edge e : current.getConnections()){
+					if (accessibleNodes.contains(e.getB())){ //b is found in this cluster
+						queue.push(e.getB()); //put on the queue
+					}else{ //b is found in another cluster
+						int[] message = {current.getValue()}; //we need the nodes that are connected to current
+						for (int i=0; i< size; i++){
+							if (i==me){
+								continue;
+							}else{
+								MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99); //"does anybody have the node I need?"
+							}
+						}
+					}
+					Path temp = new Path(getPath(current, paths));
+					if (temp != null){
+						temp.addNode(e.getB(), e.getCost());
+					}
+					newPaths.add(temp);
 				}
 			}
+			paths.addAll(newPaths);
 		}
 		
 		for (Path p : paths){
 			p.toString();
 		}
 		
+		
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
 		}
+		
 		int[] message = { 9999, 9999, 9999, 9999 };
 		for (int i = 0; i < size; i++) {
 			if (i == me) {
@@ -82,7 +101,7 @@ public class mpiSolution implements Runnable {
 
 	public static Path getPath(Node n, List<Path> paths){
 		for (Path p : paths){
-			if (p.getStart().equals(n)){
+			if (p.getLast().equals(n)){
 				return p;
 			}
 		}
