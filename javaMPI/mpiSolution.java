@@ -2,6 +2,9 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +18,9 @@ public class mpiSolution implements Runnable {
 	static int closedThreads = 1;
 	static boolean[] threadComm;
 	static int[][] next;
-
+	static List<Node> nodes = new ArrayList<Node>();
+	static Node start = null;
+	
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
 		me = MPI.COMM_WORLD.Rank();
@@ -29,20 +34,35 @@ public class mpiSolution implements Runnable {
 			(new Thread(new mpiSolution())).start();
 		}
 
-		int[][] graph = null;
-		int[][] costGraph;
-		graph = create_graph(graph);
-		costGraph = new int[n][n];
+		int[][] graph = create_graph();
+		int[][] costGraph = new int[n][n];
 	
 
-		costGraph = FloydWarshall(graph);
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				path(i, j, costGraph);
+		List<Path> paths = new ArrayList<Path>();
+		
+		LinkedList<Node> queue = new LinkedList<Node>();
+		queue.add(start);
+		
+		
+		while(!queue.isEmpty()){
+			Node current = queue.pop();			
+			
+			for(Edge e : current.getConnections()){
+				queue.push(e.getB());
+				Path temp = getPath(current, paths);
+				if (temp != null){
+					temp.addNode(e.getB(), e.getCost());
+				}else{
+					paths.add(new Path(current));
+				}
 			}
 		}
-
-		int divsionOfLabour = n / size;
+		
+		for (Path p : paths){
+			p.toString();
+		}
+		
+		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
@@ -60,6 +80,15 @@ public class mpiSolution implements Runnable {
 		MPI.Finalize();
 	}
 
+	public static Path getPath(Node n, List<Path> paths){
+		for (Path p : paths){
+			if (p.getStart().equals(n)){
+				return p;
+			}
+		}
+		return null;
+	}
+	
 	// public static
 
 	private static synchronized boolean doClose() {
@@ -77,7 +106,7 @@ public class mpiSolution implements Runnable {
 	}
 
 	@Override
-	public void run() { // TODO Auto-generated method stub
+	public void run() { 
 		int myDuty = assignment();
 		if (myDuty > 9000) {
 			// not needed, In event it is created
@@ -117,8 +146,8 @@ public class mpiSolution implements Runnable {
 	 * 0.txt, and
 	 */
 
-	public static int[][] create_graph(int[][] graph) {
-
+	public static int[][] create_graph() {
+		int[][] graph = null;
 		int first;
 		int second;
 		int third;
@@ -145,23 +174,20 @@ public class mpiSolution implements Runnable {
 					}
 				}
 			}
-			n = first;
+
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
 				first = Integer.parseInt(items[0]);
 				second = Integer.parseInt(items[1]);
 				third = Integer.parseInt(items[2]);
 				graph[first][second] = third;
-				System.out.println("id" + me + "->content:" + first + "--"
-						+ second + "--" + third);
+				System.out.println("id" + me + "->content:" + first + "--" + second + "--" + third);
 
 			}
 
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -186,19 +212,5 @@ public class mpiSolution implements Runnable {
 		}
 	}
 
-	public static int[][] FloydWarshall(int[][] graph) {
-		for (int k = 0; k < n; k++) {
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					if (graph[i][k] + graph[k][j] < graph[i][j]) {
-						graph[i][j] = graph[i][k] + graph[k][j];
-						next[i][j] = k;
-					}
-				}
-			}
-		}
-		return graph;
-
-	}
 
 }
