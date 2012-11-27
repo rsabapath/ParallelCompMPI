@@ -94,11 +94,21 @@ public class mpiSolution implements Runnable {
 		if (bestPath != null) {
 			List<Node> nodes = bestPath.getNodes();
 			for (int i = 0; i < nodes.size(); i++) {
-				if(i+1 < nodes.size()){
-				//	if(nodes.get(index))
+				if (i + 1 < nodes.size()) {
+					if (nodes.get(i).getValue() == nodes.get(i + 1).getValue()) {
+						p = p + "-> " + "(on to next machine)";
+						i = i+1;
+					}
 				}
+				if (i == 0) {
+					p = p + nodes.get(i).getValue();
+				} else {
+					p = p + "->" + nodes.get(i).getValue();
+				}
+
 			}
 		}
+		System.out.println("Cost: " + bestCost + " Path:" + p);
 		MPI.Finalize();
 	}
 
