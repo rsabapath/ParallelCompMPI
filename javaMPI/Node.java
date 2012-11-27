@@ -7,12 +7,12 @@ public class Node{
 	
 	public Node(int startNode){
 		value = startNode;
+		next = new ArrayList<Edge>();
 	}
 	
 	public void addNext(Node b, int cost){
-		if (next == null){
-			next = new ArrayList<Edge>();
-		}
+		
+		
 		next.add(new Edge(this, b, cost));
 	}
 	

@@ -19,10 +19,13 @@ public class mpiSolution implements Runnable {
 	static boolean[] threadComm;
 	static int[][] next;
 	static List<Node> nodes = new ArrayList<Node>();
+
 	static Node start = null;
 	static Node last = null;
 	static List<Node> incomingNodes = new ArrayList<Node>();
-	static List<Path> paths = new ArrayList<Path>();
+	public static List<Path> paths = new ArrayList<Path>();
+	static boolean complete = false;
+	static List<Path> commPaths = new ArrayList<Path>();
 
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
@@ -30,6 +33,9 @@ public class mpiSolution implements Runnable {
 		size = MPI.COMM_WORLD.Size();
 		threadComm = new boolean[size];
 		threadComm[me] = true;
+
+		int[][] graph = create_graph();
+		int[][] costGraph = new int[n][n];
 		for (int i = 0; i < size; i++) {
 			if (i == me) {
 				continue;
@@ -37,163 +43,249 @@ public class mpiSolution implements Runnable {
 			(new Thread(new mpiSolution())).start();
 		}
 
-		int[][] graph = create_graph();
-		int[][] costGraph = new int[n][n];
-		if (start == null) {
-			if (start != null) {
-				List<Node> accessibleNodes = new ArrayList<Node>(); // all nodes
-																	// found in
-																	// this
-																	// cluster
-				List<Path> paths = new ArrayList<Path>(); // all of the paths
-															// found
-															// in this cluster
-				paths.add(new Path(start)); // start off with 'path' 0
-
-				LinkedList<Node> queue = new LinkedList<Node>();
-				queue.add(start); // start off the queue with node 0
-
-				while (!queue.isEmpty()) {
-					Node current = queue.pop();
-					List<Path> newPaths = new ArrayList<Path>(); // build up a
-																	// list
-																	// of new
-																	// paths
-																	// then add
-																	// to
-																	// master
-																	// list
-
-					for (Path p : paths) { // for all of the paths already
-											// implemented
-						for (Edge e : current.getConnections()) {
-							if (accessibleNodes.contains(e.getB())) { // b is
-																		// found
-																		// in
-																		// this
-																		// cluster
-								queue.push(e.getB()); // put on the queue
-							} else { // b is found in another cluster
-								int[] message = { current.getValue() }; // we
-																		// need
-																		// the
-																		// nodes
-																		// that
-																		// are
-																		// connected
-																		// to
-																		// current
-								for (int i = 0; i < size; i++) {
-									if (i == me) {
-										continue;
-									} else {
-										MPI.COMM_WORLD.Isend(message, 0,
-												message.length, MPI.INT, i, 99); // "does anybody have the node I need?"
-									}
-								}
-							}
-							// Path temp = new Path(getPath(current, paths));
-							// if (temp != null) {
-							// temp.addNode(e.getB(), e.getCost());
-							// }
-							// newPaths.add(temp);
-
-						}
-
-					}
-
-					for (Path p : paths) {
-						p.toString();
-					}
-					paths.addAll(newPaths);
-				}
-			} else {
-				LinkedList<Node> queue = new LinkedList<Node>();
-				for (int i = 0; i < incomingNodes.size(); i++) {
-					System.out.println("Incoming Node:"
-							+ incomingNodes.get(i).getValue());
-					Node node = incomingNodes.get(i);
-					queue.addLast(node);
-					while (!queue.isEmpty()) {
-						Node current = queue.removeFirst();
-						boolean pathFound = false;
-						for (int j = 0; j < paths.size(); j++) {
-							int x =paths.get(j).getNodes().get(paths.get(j).getNodes().size() - 1).getValue();
-							if (x == current.getValue()) {
-								pathFound = true;
-								List<Edge> edges = current.getConnections();
-								for (int k = 0; k < edges.size(); k++) {
-									Path path = new Path(paths.get(j));
-									path.addNode(edges.get(k).getB(), edges
-											.get(k).getCost());
-									paths.add(path);
-									if (edges.get(k).getB().getValue() != last
-											.getValue()) {
-										queue.addLast(edges.get(k).getB());
-									}
-								}
-							}
-						}
-						if (pathFound == false) {
-							Path path = new Path(current);
-							List<Edge> edges = current.getConnections();
-							for (int k = 0; k < edges.size(); k++) {
-								path.addNode(edges.get(k).getB(), edges.get(k)
-										.getCost());
-								paths.add(path);
-								if (edges.get(k).getB().getValue() != last
-										.getValue()) {
-									queue.addLast(edges.get(k).getB());
-								}
-							}
-						}
-
-					}
-
-				}
-				for (int i = 0; i < paths.size(); i++) {
-					if (paths.get(i).getLast().getValue() == last.getValue()) {
-						System.out.println("Start:"
-								+ paths.get(i).getStart().getValue() + " Last:"
-								+ paths.get(i).getLast().getValue() + " Cost:"
-								+ paths.get(i).getCost());
-					}
-				}
-
-			}
+		if (start != null) { // assuming that this cluster contains the start
+								// node
+			graphStart();
 		}
+		if (last != null) {
+			graphEnd(); // TODO : RATHESH, this function can essentially be the
+						// opposite of graphStart? Add all of the final nodes
+						// from paths at this point to the queue and proceed!!
+		}
+
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
-			int[] message = { 1, 2, 3, 4 };
-			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
+			// int[] message = { 1, 2, 3, 4 };
+			// MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
 		}
 
-		int[] message = { 9999, 9999, 9999, 9999 };
+		int[] message = new int[n + 2];
+		message[0] = 9999;
 		for (int i = 0; i < size; i++) {
 			if (i == me) {
 				continue;
 			}
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99);
 		}
-		System.out.println("Hi from <" + me + ">" + "size=" + size);
+		// System.out.println("Hi from <" + me + ">" + "size=" + size);
 		while (doClose())
 			;
+		int bestCost = 9999;
+		Path bestPath = null;
+
+		if (me == 0) {
+			for (Path p : paths) {
+				for (Path outP : commPaths) {
+					if (p.getLast().getValue() == outP.getStart().getValue()) {
+						if (p.getCost() + outP.getCost() < bestCost) {
+							ArrayList<Node> nodes = new ArrayList<Node>();
+							nodes.addAll(p.getNodes());
+							nodes.addAll(outP.getNodes());
+							bestPath = new Path(nodes, p.getCost()
+									+ outP.getCost());
+							bestCost = p.getCost() + outP.getCost();
+						}
+					}
+
+				}
+			}
+		}
+		String p = "";
+		if (bestPath != null) {
+			List<Node> nodes = bestPath.getNodes();
+			for (int i = 0; i < nodes.size(); i++) {
+				if(i+1 < nodes.size()){
+				//	if(nodes.get(index))
+				}
+			}
+		}
 		MPI.Finalize();
 	}
 
-	public static Path getPath(Node n, List<Path> paths) {
-		for (Path p : paths) {
-			if (p.getStart().equals(n)) {
+	public static void graphStart() {
+		paths.add(new Path(start)); // start off with 'path' 0
 
-				return p;
+		LinkedList<Node> queue = new LinkedList<Node>();
+		queue.add(start); // start off the queue with node 0
+
+		while (!queue.isEmpty()) {
+			Node currentNode = queue.removeFirst();
+
+			List<Path> newPaths = new ArrayList<Path>(); // build up a list of
+															// new paths then
+															// add to master
+															// list
+			List<Path> oldPaths = new ArrayList<Path>(); // to be removed after
+															// every iteration
+
+			for (Path currentPath : paths) { // for all of the paths already
+												// implemented
+				// System.out.print("Size: " + paths.size() + "  Path: ");
+				// currentPath.printPath();
+
+				for (Edge e : currentNode.getConnections()) {
+					// System.out.println("# edges of " + current.getValue() +
+					// " : " + current.getConnections().size());
+					if (currentPath.getLast().getValue() == e.getA().getValue()) {
+						if (nodes.contains(e.getB())
+								&& !queue.contains(e.getB())) { // b is found in
+																// this cluster
+							queue.addLast(e.getB()); // put on the queue
+						} else { // b is found in another cluster
+							// int[] message = { currentNode.getValue() }; // we
+							// need
+							// the
+							// nodes
+							// that
+							// are
+							// connected
+							// to
+							// current
+							// for (int j = 0; j < size; j++) {
+							// if (j == me) {
+							// continue;
+							// } else {
+							// MPI.COMM_WORLD.Isend(message, 0,
+							// message.length, MPI.INT, j, 99); //
+							// "does anybody have the node I need?"
+							// }
+							// }
+
+						}
+						Path temp = new Path(currentPath); // make a copy of the
+															// path until this
+															// point
+						// System.out.print("TEMP: "); temp.printPath();
+						temp.addNode(e.getB(), e.getCost()); // add the next
+																// edge to the
+																// temp path
+						// System.out.print("TEMP2: "); temp.printPath();
+
+						newPaths.add(temp); // add this path variation to the
+											// newPaths to be added
+						oldPaths.add(currentPath);
+					}
+				}
 			}
+			paths.addAll(newPaths);
+			// System.out.print("Before size: " + paths.size());
+			paths.removeAll(oldPaths);
+			// System.out.println("After size: " + paths.size());
+
 		}
-		return null;
+		for (Path p : paths) {
+			System.out.print(" Cost: " + p.getCost() + "  Path: ");
+			// p.printPath();
+		}
 	}
 
-	// public static
+	public static void graphEnd() {
+		LinkedList<Node> queue = new LinkedList<Node>();
+		for (int i = 0; i < incomingNodes.size(); i++) {
+			paths.add(new Path(incomingNodes.get(i)));
+		}
+		for (Path p : paths) {
+			queue.add(p.getLast()); // start off the queue with all incoming end
+									// of paths!
+		}
 
-	private static synchronized boolean doClose() {
+		while (!queue.isEmpty()) {
+			Node currentNode = queue.removeFirst();
+			System.out.println("current: " + currentNode.getValue());
+
+			List<Path> newPaths = new ArrayList<Path>(); // build up a list of
+															// new paths then
+															// add to master
+															// list
+			List<Path> oldPaths = new ArrayList<Path>(); // to be removed after
+															// every iteration
+
+			for (Path currentPath : paths) { // for all of the paths already
+												// implemented
+				// System.out.print("Size: " + paths.size() + "  Path: ");
+				// currentPath.printPath();
+
+				for (Edge e : currentNode.getConnections()) {
+					// System.out.println("# edges of " + current.getValue() +
+					// " : " + current.getConnections().size());
+					if (currentPath.getLast().getValue() == e.getA().getValue()) {
+						if (nodes.contains(e.getB())
+								&& !queue.contains(e.getB())) { // b is found in
+																// this cluster
+							System.out.println("to queue: "
+									+ e.getB().getValue());
+							if (e.getB().getValue() != last.getValue()) {
+								queue.addLast(e.getB()); // put on the queue
+							}
+						} else {
+						}// b is found in another cluster
+
+						Path temp = new Path(currentPath); // make a copy of
+															// the
+															// path until
+															// this
+															// point
+						// System.out.print("TEMP: "); temp.printPath();
+						temp.addNode(e.getB(), e.getCost()); // add the next
+																// edge to
+																// the
+																// temp path
+						// System.out.print("TEMP2: "); temp.printPath();
+						newPaths.add(temp); // add this path variation to
+											// the
+											// newPaths to be added
+						oldPaths.add(currentPath);
+
+					}
+				}
+			}
+			paths.addAll(newPaths);
+			// System.out.print("Before size: " + paths.size());
+			paths.removeAll(oldPaths);
+			// System.out.println("After size: " + paths.size());
+
+		}
+		for (Path p : paths) {
+			if (p.getLast().getValue() != last.getValue()) {
+				continue;
+			}
+			System.out.print(" Cost: " + p.getCost() + "  Path: ");
+
+			p.printPath();
+			int[] message = new int[n + 2]; // we
+			// need
+			// the
+			// nodes
+			// that
+			// are
+			// connected
+			// to
+			// current
+			int index = 0;
+			for (Node n : p.getNodes()) {
+				System.out.println(me + ":  creating message: " + n.getValue());
+				message[index] = n.getValue();
+				index++;
+			}
+			message[index] = -1;
+			index++;
+			message[index] = p.getCost();
+
+			for (int j = 0; j < size; j++) {
+				if (j == me) {
+					continue;
+				} else {
+					MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT,
+							j, 99); // "does anybody have the node I need?"
+				}
+
+			}
+
+		}
+
+	}
+
+	private static synchronized boolean doClose() { // public static
 		if (closedThreads == size) {
 			return false;
 		} else {
@@ -205,6 +297,11 @@ public class mpiSolution implements Runnable {
 	private static synchronized void closed() {
 
 		closedThreads++;
+
+	}
+
+	private static synchronized void addToList(Path path) {
+		commPaths.add(path);
 	}
 
 	@Override
@@ -216,15 +313,38 @@ public class mpiSolution implements Runnable {
 		}
 		while (true) {
 
-			int[] message = new int[4];
-			MPI.COMM_WORLD.Recv(message, 0, 4, MPI.INT, myDuty, 99);
-			if (message[0] > 9000 && message[1] > 9000 && message[2] > 9000
-					&& message[3] > 9000) {
+			int[] message = new int[n + 2];
+			MPI.COMM_WORLD.Recv(message, 0, n + 2, MPI.INT, myDuty, 99);
+
+			if (message[0] > 9000) {
 				System.out.println("I am requested to close Comm is:" + me);
 				closed();
 				return;
 
+			} else {
+				if (message[0] == -1) {
+					continue;
+				}
+				Path path = new Path(new Node(message[0]));
+				boolean cost = false;
+				for (int i = 1; i < n + 2; i++) {
+					if (cost) {
+
+						path.setCost(message[i]);
+					}
+					if (cost) {
+						break;
+					}
+					if (message[i] != -1) {
+						path.addNode(new Node(message[i]), 0);
+					} else {
+						cost = true;
+					}
+
+				}
+				addToList(path);
 			}
+
 			System.out.println("received:" + message[0] + "--" + message[1]
 					+ "--" + message[2]);
 		}
@@ -250,9 +370,6 @@ public class mpiSolution implements Runnable {
 
 	public static int[][] create_graph() {
 		int[][] graph = null;
-		int first;
-		int second;
-		int third;
 
 		Pattern pattern = Pattern.compile("\\d*");
 		BufferedReader in;
@@ -261,30 +378,42 @@ public class mpiSolution implements Runnable {
 
 			String line = in.readLine();
 			String[] items = line.split(" ");
-			int starting = Integer.parseInt(items[0]);
-			int ending = Integer.parseInt(items[1]);
-			line = in.readLine();
-			items = line.split(" ");
-			first = Integer.parseInt(items[0]);
-			second = Integer.parseInt(items[1]);
-			n = first;
-			line = in.readLine();
-			items = line.split(" ");
-			for (int i = 0; i < items.length; i++) {
-				Node node = new Node(Integer.parseInt(items[i]));
-				nodes.add(node);
-			}
-			if (me * (n / size) <= starting && starting < (me + 1) * (n / size)) {
+			int startingNode = Integer.parseInt(items[0]);
+			int endingNode = Integer.parseInt(items[1]);
 
-				start = nodes.get(starting % (n / size));
+			line = in.readLine();
+			items = line.split(" ");
+			int numNodes = Integer.parseInt(items[0]);
+			int numEdges = Integer.parseInt(items[1]);
+			n = numNodes;
+
+			line = in.readLine();
+			items = line.split(" ");
+
+			for (int i = 0; i < items.length; i++) {
+				int currentValue = Integer.parseInt(items[i]);
+				Node node = new Node(currentValue);
+				nodes.add(node);
+				if (currentValue == startingNode) {
+					start = node;
+				} else if (currentValue == endingNode) {
+					last = node;
+				}
 			}
-			if (me * (n / size) <= ending && ending < (me + 1) * (n / size)) {
-				last = nodes.get(ending % (n / size));
-			}
-			graph = new int[first][first];
-			next = new int[first][first];
-			for (int i = 0; i < first; i++) {
-				for (int j = 0; j < first; j++) {
+
+			// if (me * (n / size) <= startingNode && startingNode < (me + 1) *
+			// (n / size)) {
+			// start = nodes.get(startingNode % (n / size));
+			// }
+			// if (me * (n / size) <= endingNode && endingNode < (me + 1) * (n /
+			// size)) {
+			// last = nodes.get(endingNode % (n / size));
+			// }
+
+			graph = new int[numNodes][numNodes];
+			next = new int[numNodes][numNodes];
+			for (int i = 0; i < numNodes; i++) {
+				for (int j = 0; j < numNodes; j++) {
 					next[i][j] = 9999;
 					if (i == j) {
 						graph[i][j] = 0;
@@ -293,34 +422,43 @@ public class mpiSolution implements Runnable {
 					}
 				}
 			}
-			boolean[] elements = new boolean[n];
+			boolean[] incoming = new boolean[n];
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
-				first = Integer.parseInt(items[0]);
-				second = Integer.parseInt(items[1]);
-				third = Integer.parseInt(items[2]);
+				int nodeA = Integer.parseInt(items[0]);
+				Node node = null;
+				int nodeB = Integer.parseInt(items[1]);
+				Node node2 = null;
+				int edgeWeight = Integer.parseInt(items[2]);
 
-				if (first < (n / size) * (me)) {
-					if (!elements[second]) {
-						elements[second] = true;
-						incomingNodes.add(nodes.get(second % (n / size)));
+				if (me == 0) { // cluster with start node
+					node = getNode(nodeA);
+
+					if (isAccessible(nodeB)) {
+						node2 = getNode(nodeB);
+					} else {
+						node2 = new Node(nodeB);
 					}
-					continue;
+				} else { // cluster with end node
+					if (isAccessible(nodeA)) {
+						node = getNode(nodeA);
+					} else {
+						node = new Node(nodeA);
+					}
+					node2 = getNode(nodeB);
 				}
-				Node node = nodes.get(first % (n / size));
-				if (second > (n / size)) {
-					Node node2 = new Node(second);
-					node.addNext(node2, third);
 
-				} else {
-					Node node2 = nodes.get(second % (n / size));
-					node.addNext(node2, third);
-
+				node.addNext(node2, edgeWeight);
+				if (nodeA < (n / size) * (me)) {
+					if (incoming[nodeB] == false) {
+						incoming[nodeB] = true;
+						incomingNodes.add(node2);
+					}
 				}
-				graph[first][second] = third;
-				System.out.println("id" + me + "->content:" + first + "--"
-						+ second + "--" + third);
 
+				graph[nodeA][nodeB] = edgeWeight;
+				// System.out.println("id" + me + "->content:" + nodeA + "--" +
+				// nodeB + "--" + graph[nodeA][nodeB]);
 			}
 
 		} catch (FileNotFoundException e) {
@@ -330,6 +468,24 @@ public class mpiSolution implements Runnable {
 		}
 
 		return graph;
+	}
+
+	public static boolean isAccessible(int nodeValue) {
+		for (Node n : nodes) {
+			if (n.getValue() == nodeValue) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static Node getNode(int nodeValue) {
+		for (Node n : nodes) {
+			if (n.getValue() == nodeValue) {
+				return n;
+			}
+		}
+		return null;
 	}
 
 	public static void path(int i, int j, int[][] graph) {
