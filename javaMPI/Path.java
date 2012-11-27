@@ -10,6 +10,10 @@ public class Path{
 		nodes.add(first);
 	}
 	
+	public Path(Path old){
+		totalCost = old.getCost();
+		nodes.addAll(old.getNodes());
+	}
 	public void addNode(Node n, int cost){
 //		if (nodes == null){
 //			nodes = new ArrayList<Node>();
@@ -28,6 +32,18 @@ public class Path{
 	
 	public Node getStart(){
 		return nodes.get(0); //get first
+	}
+	
+	public Node getLast(){
+		if (nodes.size()>0){
+			return nodes.get(nodes.size()-1);
+		}else{
+			return null;
+		}
+	}
+	
+	public List<Node> getNodes(){
+		return nodes;
 	}
 	
 	public int getCost(){
