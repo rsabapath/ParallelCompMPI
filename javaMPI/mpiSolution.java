@@ -20,7 +20,8 @@ public class mpiSolution implements Runnable {
 	static int[][] next;
 	static List<Node> nodes = new ArrayList<Node>();
 	static Node start = null;
-	
+	static Node last = null;
+
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
 		me = MPI.COMM_WORLD.Rank();
@@ -36,32 +37,30 @@ public class mpiSolution implements Runnable {
 
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
-	
+		if (start != null) {
+			List<Path> paths = new ArrayList<Path>();
 
-		List<Path> paths = new ArrayList<Path>();
-		
-		LinkedList<Node> queue = new LinkedList<Node>();
-		queue.add(start);
-		
-		
-		while(!queue.isEmpty()){
-			Node current = queue.pop();			
-			
-			for(Edge e : current.getConnections()){
-				queue.push(e.getB());
-				Path temp = getPath(current, paths);
-				if (temp != null){
-					temp.addNode(e.getB(), e.getCost());
-				}else{
-					paths.add(new Path(current));
+			LinkedList<Node> queue = new LinkedList<Node>();
+			queue.addLast(start);
+
+			while (!queue.isEmpty()) {
+				Node current = queue.removeFirst();
+				for (Edge e : current.getConnections()) {
+					queue.push(e.getB());
+					Path temp = getPath(current, paths);
+					if (temp != null) {
+						temp.addNode(e.getB(), e.getCost());
+					} else {
+						paths.add(new Path(current));
+					}
 				}
+
+			}
+
+			for (Path p : paths) {
+				p.toString();
 			}
 		}
-		
-		for (Path p : paths){
-			p.toString();
-		}
-		
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
@@ -80,15 +79,15 @@ public class mpiSolution implements Runnable {
 		MPI.Finalize();
 	}
 
-	public static Path getPath(Node n, List<Path> paths){
-		for (Path p : paths){
-			if (p.getStart().equals(n)){
+	public static Path getPath(Node n, List<Path> paths) {
+		for (Path p : paths) {
+			if (p.getStart().equals(n)) {
 				return p;
 			}
 		}
 		return null;
 	}
-	
+
 	// public static
 
 	private static synchronized boolean doClose() {
@@ -106,7 +105,7 @@ public class mpiSolution implements Runnable {
 	}
 
 	@Override
-	public void run() { 
+	public void run() {
 		int myDuty = assignment();
 		if (myDuty > 9000) {
 			// not needed, In event it is created
@@ -159,14 +158,25 @@ public class mpiSolution implements Runnable {
 
 			String line = in.readLine();
 			String[] items = line.split(" ");
+			int starting = Integer.parseInt(items[0]);
+			int ending = Integer.parseInt(items[1]);
+			line = in.readLine();
+			items = line.split(" ");
 			first = Integer.parseInt(items[0]);
 			second = Integer.parseInt(items[1]);
 			n = first;
 			line = in.readLine();
 			items = line.split(" ");
-			for(int i =0;i<items.length;i++){
+			for (int i = 0; i < items.length; i++) {
 				Node node = new Node(Integer.parseInt(items[i]));
 				nodes.add(node);
+			}
+			if (me * (n / size) <= starting && starting < (me + 1) * (n / size)) {
+
+				start = nodes.get(starting % (n / size));
+			}
+			if (me * (n / size) <= ending && ending < (me + 1) * (n / size)) {
+				last = nodes.get(ending % (n / size));
 			}
 			graph = new int[first][first];
 			next = new int[first][first];
@@ -186,18 +196,19 @@ public class mpiSolution implements Runnable {
 				first = Integer.parseInt(items[0]);
 				second = Integer.parseInt(items[1]);
 				third = Integer.parseInt(items[2]);
-				Node node = nodes.get(first%(n/size));
-				if(second> (n/size)){
+				Node node = nodes.get(first % (n / size));
+				if (second > (n / size)) {
 					Node node2 = new Node(second);
 					node.addNext(node2, third);
-					
-				}else{
-					Node node2 = nodes.get(second%(n/size));
+
+				} else {
+					Node node2 = nodes.get(second % (n / size));
 					node.addNext(node2, third);
-					
+
 				}
 				graph[first][second] = third;
-				System.out.println("id" + me + "->content:" + first + "--" + second + "--" + third);
+				System.out.println("id" + me + "->content:" + first + "--"
+						+ second + "--" + third);
 
 			}
 
@@ -227,6 +238,5 @@ public class mpiSolution implements Runnable {
 
 		}
 	}
-
 
 }
