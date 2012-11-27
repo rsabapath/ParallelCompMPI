@@ -29,18 +29,17 @@ public class mpiSolution implements Runnable {
 			(new Thread(new mpiSolution())).start();
 		}
 
-		int[][] graph = null;
-		int[][] costGraph;
-		graph = create_graph(graph);
-		costGraph = new int[n][n];
+		int[][] graph = create_graph();
+		int[][] costGraph = new int[n][n];
 	
-
 		costGraph = FloydWarshall(graph);
-		for (int i = 0; i < n; i++) {
+		
+	/*	for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				path(i, j, costGraph);
 			}
 		}
+	*/
 
 		int divsionOfLabour = n / size;
 		if (me == 0) {
@@ -117,8 +116,8 @@ public class mpiSolution implements Runnable {
 	 * 0.txt, and
 	 */
 
-	public static int[][] create_graph(int[][] graph) {
-
+	public static int[][] create_graph() {
+		int[][] graph = null;
 		int first;
 		int second;
 		int third;
@@ -145,15 +144,14 @@ public class mpiSolution implements Runnable {
 					}
 				}
 			}
-			n = first;
+
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
 				first = Integer.parseInt(items[0]);
 				second = Integer.parseInt(items[1]);
 				third = Integer.parseInt(items[2]);
 				graph[first][second] = third;
-				System.out.println("id" + me + "->content:" + first + "--"
-						+ second + "--" + third);
+				System.out.println("id" + me + "->content:" + first + "--" + second + "--" + third);
 
 			}
 
