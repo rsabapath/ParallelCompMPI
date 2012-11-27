@@ -118,7 +118,7 @@ public class mpiSolution implements Runnable {
 
 		}
 		for (Path p : paths) {
-			p.printPath();
+			System.out.print(" Cost: " + p.getCost() + "  Path: "); p.printPath(); 
 		}
 	}
 	
@@ -127,7 +127,8 @@ public class mpiSolution implements Runnable {
 		
 		for (Path p : paths){
 			queue.add(p.getLast()); //start off the queue with all incoming end of paths!
-
+		}
+		
 		while(!queue.isEmpty()){
 			Node currentNode = queue.removeFirst();	
 
@@ -170,7 +171,10 @@ public class mpiSolution implements Runnable {
 //			System.out.println("After size: " + paths.size());
 
 		}
+		for (Path p : paths) {
+			p.printPath(); System.out.println(" Cost: " + p.getCost());
 		}
+
 	}
 
 	private static synchronized boolean doClose() {	// public static
