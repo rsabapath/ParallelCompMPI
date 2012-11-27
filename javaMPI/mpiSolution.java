@@ -2,11 +2,13 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import mpi.*;
-import "Structures.java"
 
 public class mpiSolution implements Runnable {
 	static int n;
@@ -16,8 +18,9 @@ public class mpiSolution implements Runnable {
 	static int closedThreads = 1;
 	static boolean[] threadComm;
 	static int[][] next;
-	static List<myNode> nodes = new ArrayList<myNode>();
-
+	static List<Node> nodes = new ArrayList<Node>();
+	static Node start = null;
+	
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
 		me = MPI.COMM_WORLD.Rank();
@@ -34,36 +37,23 @@ public class mpiSolution implements Runnable {
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
 	
-		int start = 0;
-		
-		List<myPath> paths = new ArrayList<myPath>();
-		List<myNode> nodes = new ArrayList<myNode>();
-		Stack<myNode> queue = new Stack<myNode>();
-		
-		myNode start = new Node(start);
-		myPath first = new myPath(start);
-		
-		for(myEdge e : start.){
-			if (e.getA().getValue() == start){
-				first.addNode(e.getB(), edge.getCost());
-			}
-		}
-		
-		
-		
-		
-	}
-		
-		
-	
-	/*	for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				path(i, j, costGraph);
-			}
-		}
-	*/
 
-		int divsionOfLabour = n / size;
+		List<Path> paths = new ArrayList<Path>();
+		
+		LinkedList<Node> queue = new LinkedList<Node>();
+		queue.add(start);
+		
+		Path first = new Path(start);
+		
+		while(!queue.isEmpty()){
+			Node current = queue.pop();
+			for(Edge e : current.next){
+				queue.push(e.getB());
+			}
+		}
+
+		
+		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
@@ -98,7 +88,7 @@ public class mpiSolution implements Runnable {
 	}
 
 	@Override
-	public void run() { // TODO Auto-generated method stub
+	public void run() { 
 		int myDuty = assignment();
 		if (myDuty > 9000) {
 			// not needed, In event it is created
@@ -178,10 +168,8 @@ public class mpiSolution implements Runnable {
 			}
 
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
