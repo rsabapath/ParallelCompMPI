@@ -13,7 +13,9 @@ public class Path{
 	public Path(Path old){
 		totalCost = old.getCost();
 		nodes = new ArrayList<Node>();
-		nodes.addAll(old.getNodes());
+		for (Node n: old.getNodes()){
+			nodes.add(n);
+		}
 	}
 	public void addNode(Node n, int cost){
 //		if (nodes == null){
