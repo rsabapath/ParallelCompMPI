@@ -41,7 +41,13 @@ public class mpiSolution implements Runnable {
 
 
 		if (start != null) { //assuming that this cluster contains the start node
-			graphStart();
+			//graphStart();
+			for (int i=0; i< n; i++){
+				for (int j=0; j< n; i++){
+					System.out.print(j + "-->");
+				}
+				System.out.println("");
+			}
 		}
 
 
@@ -58,7 +64,7 @@ public class mpiSolution implements Runnable {
 			}
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99);
 		}
-		System.out.println("Hi from <" + me + ">" + "size=" + size);
+//		System.out.println("Hi from <" + me + ">" + "size=" + size);
 		while (doClose());
 		MPI.Finalize();
 	}
@@ -70,32 +76,44 @@ public class mpiSolution implements Runnable {
 		LinkedList<Node> queue = new LinkedList<Node>();
 		queue.add(start); //start off the queue with node 0
 
-
 		while(!queue.isEmpty()){
-			Node current = queue.removeFirst();			
+			Node current = queue.removeFirst();	
+		
 			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
-
-			for (Path p: paths){ //for all of the paths already implemented   
+			List<Path> oldPaths = new ArrayList<Path>(); //to be removed after every iteration
+			
+			for (int i=0; i < paths.size(); i++){ //for all of the paths already implemented  
+				Path currentPath = paths.get(i);
+				System.out.print("Size: " + paths.size() + "  Path: ");
+				currentPath.printPath();
+				
 				for(Edge e : current.getConnections()){
-					if (nodes.contains(e.getB())){ //b is found in this cluster
+					//System.out.println("# edges of " + current.getValue() + " : " + current.getConnections().size());
+
+					if (nodes.contains(e.getB()) && !queue.contains(e.getB())){ //b is found in this cluster
 						queue.addLast(e.getB()); //put on the queue
 					}else{ //b is found in another cluster
 						int[] message = {current.getValue()}; //we need the nodes that are connected to current
-						for (int i=0; i< size; i++){
-							if (i==me){
+						for (int j=0; j< size; j++){
+							if (j==me){
 								continue;
 							}else{
-								MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99); //"does anybody have the node I need?"
+								MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, j, 99); //"does anybody have the node I need?"
 							}
-						}
+						} 
 					}
-					Path temp = new Path(p); //make a copy of the path until this point
+					Path temp = new Path(currentPath); //make a copy of the path until this point
 					temp.addNode(e.getB(), e.getCost()); //add the next edge to the temp path
 					newPaths.add(temp); //add this path variation to the newPaths to be added
+					oldPaths.add(currentPath);
 				}
 			}
-
 			paths.addAll(newPaths);
+			System.out.print("Before size: " + paths.size());
+			paths.removeAll(oldPaths);
+			System.out.println("After size: " + paths.size());
+
+
 		}
 		for (Path p : paths) {
 			p.toString();
