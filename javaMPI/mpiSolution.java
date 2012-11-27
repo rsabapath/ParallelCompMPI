@@ -162,6 +162,12 @@ public class mpiSolution implements Runnable {
 			first = Integer.parseInt(items[0]);
 			second = Integer.parseInt(items[1]);
 			n = first;
+			line = in.readLine();
+			items = line.split(" ");
+			for(int i =0;i<items.length;i++){
+				Node node = new Node(Integer.parseInt(items[i]));
+				nodes.add(node);
+			}
 			graph = new int[first][first];
 			next = new int[first][first];
 			for (int i = 0; i < first; i++) {
@@ -180,6 +186,16 @@ public class mpiSolution implements Runnable {
 				first = Integer.parseInt(items[0]);
 				second = Integer.parseInt(items[1]);
 				third = Integer.parseInt(items[2]);
+				Node node = nodes.get(first%(n/size));
+				if(second> (n/size)){
+					Node node2 = new Node(second);
+					node.addNext(node2, third);
+					
+				}else{
+					Node node2 = nodes.get(second%(n/size));
+					node.addNext(node2, third);
+					
+				}
 				graph[first][second] = third;
 				System.out.println("id" + me + "->content:" + first + "--" + second + "--" + third);
 
