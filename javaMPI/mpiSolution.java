@@ -37,23 +37,25 @@ public class mpiSolution implements Runnable {
 
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
+
 		if (start != null) {
+
+
+		List<Node> accessibleNodes = new ArrayList<Node>(); //all nodes found in this cluster
 		List<Path> paths = new ArrayList<Path>(); //all of the paths found in this cluster
 		paths.add(new Path(start)); //start off with 'path' 0
-
-			
 		
 		LinkedList<Node> queue = new LinkedList<Node>();
-			queue.addLast(start);
+		queue.add(start); //start off the queue with node 0
 		
-
-			while (!queue.isEmpty()) {
-				Node current = queue.removeFirst();
+		
+		
+		while(!queue.isEmpty()){
+			Node current = queue.pop();			
 			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
 			
 			for (Path p: paths){ //for all of the paths already implemented   
 				for(Edge e : current.getConnections()){
-					
 					if (accessibleNodes.contains(e.getB())){ //b is found in this cluster
 						queue.push(e.getB()); //put on the queue
 					}else{ //b is found in another cluster
@@ -71,20 +73,17 @@ public class mpiSolution implements Runnable {
 						temp.addNode(e.getB(), e.getCost());
 					}
 					newPaths.add(temp);
-					}
+
 				}
-			paths.addAll(newPaths);
+
 			}
 
 			for (Path p : paths) {
 				p.toString();
 			}
+			paths.addAll(newPaths);
 		}
-		
-		
-		
-		
-		
+		}
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
@@ -100,20 +99,20 @@ public class mpiSolution implements Runnable {
 		}
 		System.out.println("Hi from <" + me + ">" + "size=" + size);
 		while (doClose());
-			;
 		MPI.Finalize();
 	}
 
-	public static Path getPath(Node n, List<Path> paths){
-		for (Path p : paths){
-			if (p.getLast().equals(n)){
+
+	public static Path getPath(Node n, List<Path> paths) {
+		for (Path p : paths) {
+			if (p.getStart().equals(n)) {
+
 				return p;
 			}
 		}
 		return null;
 	}
 
-	
 	// public static
 
 	private static synchronized boolean doClose() {
@@ -131,8 +130,7 @@ public class mpiSolution implements Runnable {
 	}
 
 	@Override
-	
-	public void run() { 
+	public void run() {
 		int myDuty = assignment();
 		if (myDuty > 9000) {
 			// not needed, In event it is created
