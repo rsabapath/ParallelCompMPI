@@ -21,6 +21,7 @@ public class mpiSolution implements Runnable {
 	static List<Node> nodes = new ArrayList<Node>();
 	static Node start = null;
 	static Node last = null;
+	static List<Path> paths = new ArrayList<Path>(); //all of the paths found in this cluster
 
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
@@ -38,58 +39,18 @@ public class mpiSolution implements Runnable {
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
 
-		if (start != null) {
 
-
-		List<Node> accessibleNodes = new ArrayList<Node>(); //all nodes found in this cluster
-		List<Path> paths = new ArrayList<Path>(); //all of the paths found in this cluster
-		paths.add(new Path(start)); //start off with 'path' 0
-		
-		LinkedList<Node> queue = new LinkedList<Node>();
-		queue.add(start); //start off the queue with node 0
-		
-		
-		
-		while(!queue.isEmpty()){
-			Node current = queue.removeFirst();			
-			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
-			
-			for (Path p: paths){ //for all of the paths already implemented   
-				for(Edge e : current.getConnections()){
-					if (accessibleNodes.contains(e.getB())){ //b is found in this cluster
-						queue.addLast(e.getB()); //put on the queue
-					}else{ //b is found in another cluster
-						int[] message = {current.getValue()}; //we need the nodes that are connected to current
-						for (int i=0; i< size; i++){
-							if (i==me){
-								continue;
-							}else{
-								MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99); //"does anybody have the node I need?"
-							}
-						}
-					}
-					Path temp = new Path(getPath(current, paths));
-					if (temp != null){
-						temp.addNode(e.getB(), e.getCost());
-					}
-					newPaths.add(temp);
-
-				}
-
-			}
-
-			for (Path p : paths) {
-				p.toString();
-			}
-			paths.addAll(newPaths);
+		if (start != null) { //assuming that this cluster contains the start node
+			graphStart();
 		}
-		}
+
+
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
 			int[] message = { 1, 2, 3, 4 };
 			MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
 		}
-		
+
 		int[] message = { 9999, 9999, 9999, 9999 };
 		for (int i = 0; i < size; i++) {
 			if (i == me) {
@@ -103,19 +64,45 @@ public class mpiSolution implements Runnable {
 	}
 
 
-	public static Path getPath(Node n, List<Path> paths) {
-		for (Path p : paths) {
-			if (p.getStart().equals(n)) {
+	public static void graphStart() {
+		paths.add(new Path(start)); //start off with 'path' 0
 
-				return p;
+		LinkedList<Node> queue = new LinkedList<Node>();
+		queue.add(start); //start off the queue with node 0
+
+
+		while(!queue.isEmpty()){
+			Node current = queue.removeFirst();			
+			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
+
+			for (Path p: paths){ //for all of the paths already implemented   
+				for(Edge e : current.getConnections()){
+					if (nodes.contains(e.getB())){ //b is found in this cluster
+						queue.addLast(e.getB()); //put on the queue
+					}else{ //b is found in another cluster
+						int[] message = {current.getValue()}; //we need the nodes that are connected to current
+						for (int i=0; i< size; i++){
+							if (i==me){
+								continue;
+							}else{
+								MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, i, 99); //"does anybody have the node I need?"
+							}
+						}
+					}
+					Path temp = new Path(p); //make a copy of the path until this point
+					temp.addNode(e.getB(), e.getCost()); //add the next edge to the temp path
+					newPaths.add(temp); //add this path variation to the newPaths to be added
+				}
 			}
+
+			paths.addAll(newPaths);
 		}
-		return null;
+		for (Path p : paths) {
+			p.toString();
+		}
 	}
 
-	// public static
-
-	private static synchronized boolean doClose() {
+	private static synchronized boolean doClose() {	// public static
 		if (closedThreads == size) {
 			return false;
 		} else {

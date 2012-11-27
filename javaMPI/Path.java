@@ -12,6 +12,7 @@ public class Path{
 	
 	public Path(Path old){
 		totalCost = old.getCost();
+		nodes = new ArrayList<Node>();
 		nodes.addAll(old.getNodes());
 	}
 	public void addNode(Node n, int cost){
