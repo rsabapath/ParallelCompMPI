@@ -43,15 +43,24 @@ public class mpiSolution implements Runnable {
 		LinkedList<Node> queue = new LinkedList<Node>();
 		queue.add(start);
 		
-		Path first = new Path(start);
 		
 		while(!queue.isEmpty()){
-			Node current = queue.pop();
-			for(Edge e : current.next){
+			Node current = queue.pop();			
+			
+			for(Edge e : current.getConnections()){
 				queue.push(e.getB());
+				Path temp = getPath(current, paths);
+				if (temp != null){
+					temp.addNode(e.getB(), e.getCost());
+				}else{
+					paths.add(new Path(current));
+				}
 			}
 		}
-
+		
+		for (Path p : paths){
+			p.toString();
+		}
 		
 		int divsionOfLabour = n; // size;
 		if (me == 0) {
@@ -71,6 +80,15 @@ public class mpiSolution implements Runnable {
 		MPI.Finalize();
 	}
 
+	public static Path getPath(Node n, List<Path> paths){
+		for (Path p : paths){
+			if (p.getStart().equals(n)){
+				return p;
+			}
+		}
+		return null;
+	}
+	
 	// public static
 
 	private static synchronized boolean doClose() {

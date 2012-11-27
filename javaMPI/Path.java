@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Path{
-	int totalCost;
-	public List<Node> nodes;
+	private int totalCost;
+	private List<Node> nodes;
 	
 	public Path(Node first){
 		nodes = new ArrayList<Node>();
@@ -20,10 +20,14 @@ public class Path{
 	
 	public String toString(){
 		for (Node n: nodes){
-			System.out.print(n.value);
+			System.out.print(n.getValue());
 		}
 		System.out.println("");
 		return null;
+	}
+	
+	public Node getStart(){
+		return nodes.get(0); //get first
 	}
 	
 	public int getCost(){

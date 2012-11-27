@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Node{
-	public int value;
-	public List<Edge> next;
+	private int value;
+	private List<Edge> next;
 	
 	public Node(int startNode){
 		value = startNode;
@@ -14,6 +14,10 @@ public class Node{
 			next = new ArrayList<Edge>();
 		}
 		next.add(new Edge(this, b, cost));
+	}
+	
+	public List<Edge> getConnections(){
+		return next;
 	}
 	
 	public int getValue(){
