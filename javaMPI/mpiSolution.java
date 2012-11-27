@@ -51,13 +51,13 @@ public class mpiSolution implements Runnable {
 		
 		
 		while(!queue.isEmpty()){
-			Node current = queue.pop();			
+			Node current = queue.removeFirst();			
 			List<Path> newPaths = new ArrayList<Path>(); //build up a list of new paths then add to master list
 			
 			for (Path p: paths){ //for all of the paths already implemented   
 				for(Edge e : current.getConnections()){
 					if (accessibleNodes.contains(e.getB())){ //b is found in this cluster
-						queue.push(e.getB()); //put on the queue
+						queue.addLast(e.getB()); //put on the queue
 					}else{ //b is found in another cluster
 						int[] message = {current.getValue()}; //we need the nodes that are connected to current
 						for (int i=0; i< size; i++){
