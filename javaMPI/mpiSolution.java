@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import mpi.*;
+import "Structures.java"
 
 public class mpiSolution implements Runnable {
 	static int n;
@@ -15,6 +16,7 @@ public class mpiSolution implements Runnable {
 	static int closedThreads = 1;
 	static boolean[] threadComm;
 	static int[][] next;
+	static List<myNode> nodes = new ArrayList<myNode>();
 
 	public static void main(String args[]) throws Exception {
 		MPI.Init(args);
@@ -32,8 +34,28 @@ public class mpiSolution implements Runnable {
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
 	
-		costGraph = FloydWarshall(graph);
+		int start = 0;
 		
+		List<myPath> paths = new ArrayList<myPath>();
+		List<myNode> nodes = new ArrayList<myNode>();
+		Stack<myNode> queue = new Stack<myNode>();
+		
+		myNode start = new Node(start);
+		myPath first = new myPath(start);
+		
+		for(myEdge e : start.){
+			if (e.getA().getValue() == start){
+				first.addNode(e.getB(), edge.getCost());
+			}
+		}
+		
+		
+		
+		
+	}
+		
+		
+	
 	/*	for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				path(i, j, costGraph);
@@ -184,19 +206,5 @@ public class mpiSolution implements Runnable {
 		}
 	}
 
-	public static int[][] FloydWarshall(int[][] graph) {
-		for (int k = 0; k < n; k++) {
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					if (graph[i][k] + graph[k][j] < graph[i][j]) {
-						graph[i][j] = graph[i][k] + graph[k][j];
-						next[i][j] = k;
-					}
-				}
-			}
-		}
-		return graph;
-
-	}
 
 }
