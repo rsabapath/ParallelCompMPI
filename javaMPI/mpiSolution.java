@@ -73,7 +73,7 @@ public class mpiSolution implements Runnable {
 		int bestCost = 9999;
 		Path bestPath = null;
 
-		if (me == 0) {
+		if (start != null) {
 			for (Path p : paths) {
 				for (Path outP : commPaths) {
 					if (p.getLast().getValue() == outP.getStart().getValue()) {
@@ -89,7 +89,7 @@ public class mpiSolution implements Runnable {
 
 				}
 			}
-		}
+		
 		String p = "";
 		if (bestPath != null) {
 			List<Node> nodes = bestPath.getNodes();
@@ -97,7 +97,7 @@ public class mpiSolution implements Runnable {
 				if (i + 1 < nodes.size()) {
 					if (nodes.get(i).getValue() == nodes.get(i + 1).getValue()) {
 						p = p + "-> " + "(on to next machine)";
-						i = i+1;
+						i = i + 1;
 					}
 				}
 				if (i == 0) {
@@ -109,6 +109,7 @@ public class mpiSolution implements Runnable {
 			}
 		}
 		System.out.println("Cost: " + bestCost + " Path:" + p);
+		}
 		MPI.Finalize();
 	}
 
@@ -184,8 +185,8 @@ public class mpiSolution implements Runnable {
 
 		}
 		for (Path p : paths) {
-			System.out.print(" Cost: " + p.getCost() + "  Path: ");
-			// p.printPath();
+			System.out.println("Cluster Node: "+me+ " Cost: " + p.getCost() + "  Path: "+p.printPath());
+			 
 		}
 	}
 
@@ -201,7 +202,7 @@ public class mpiSolution implements Runnable {
 
 		while (!queue.isEmpty()) {
 			Node currentNode = queue.removeFirst();
-			System.out.println("current: " + currentNode.getValue());
+			// System.out.println("current: " + currentNode.getValue());
 
 			List<Path> newPaths = new ArrayList<Path>(); // build up a list of
 															// new paths then
@@ -222,8 +223,8 @@ public class mpiSolution implements Runnable {
 						if (nodes.contains(e.getB())
 								&& !queue.contains(e.getB())) { // b is found in
 																// this cluster
-							System.out.println("to queue: "
-									+ e.getB().getValue());
+							// System.out.println("to queue: "
+							// + e.getB().getValue());
 							if (e.getB().getValue() != last.getValue()) {
 								queue.addLast(e.getB()); // put on the queue
 							}
@@ -259,9 +260,9 @@ public class mpiSolution implements Runnable {
 			if (p.getLast().getValue() != last.getValue()) {
 				continue;
 			}
-			System.out.print(" Cost: " + p.getCost() + "  Path: ");
-
-			p.printPath();
+			System.out.println("Cluster Node: "+me+ " Cost: " + p.getCost() + "  Path: "+p.printPath());
+			
+			
 			int[] message = new int[n + 2]; // we
 			// need
 			// the
@@ -273,7 +274,7 @@ public class mpiSolution implements Runnable {
 			// current
 			int index = 0;
 			for (Node n : p.getNodes()) {
-				System.out.println(me + ":  creating message: " + n.getValue());
+			//	System.out.println(me + ":  creating message: " + n.getValue());
 				message[index] = n.getValue();
 				index++;
 			}
@@ -285,8 +286,7 @@ public class mpiSolution implements Runnable {
 				if (j == me) {
 					continue;
 				} else {
-					MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT,
-							j, 99); // "does anybody have the node I need?"
+					MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT,j, 99); // "does anybody have the node I need?"
 				}
 
 			}
@@ -327,7 +327,7 @@ public class mpiSolution implements Runnable {
 			MPI.COMM_WORLD.Recv(message, 0, n + 2, MPI.INT, myDuty, 99);
 
 			if (message[0] > 9000) {
-				System.out.println("I am requested to close Comm is:" + me);
+				//System.out.println("Close comm");
 				closed();
 				return;
 
@@ -355,8 +355,8 @@ public class mpiSolution implements Runnable {
 				addToList(path);
 			}
 
-			System.out.println("received:" + message[0] + "--" + message[1]
-					+ "--" + message[2]);
+		//	System.out.println("received:" + message[0] + "--" + message[1]
+			//		+ "--" + message[2]);
 		}
 	}
 
@@ -435,6 +435,7 @@ public class mpiSolution implements Runnable {
 			boolean[] incoming = new boolean[n];
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
+				//System.out.println("nodeA: " + items[0]);
 				int nodeA = Integer.parseInt(items[0]);
 				Node node = null;
 				int nodeB = Integer.parseInt(items[1]);

@@ -30,11 +30,13 @@ public class Path {
 		totalCost += cost;
 	}
 
-	public void printPath() {
+	public String printPath() {
+		String s = "";
 		for (Node n : nodes) {
-			System.out.print(n.getValue() + "->");
+			s = s+ n.getValue() + "->";
 		}
-		System.out.println("XXX");
+		s=s+"XXX";
+		return s;
 	}
 
 	public Node getStart() {
