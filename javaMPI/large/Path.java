@@ -33,9 +33,7 @@ public class Path {
 	public String printPath() {
 		String s = "";
 		for (Node n : nodes) {
-			if(n != null){
 			s = s+ n.getValue() + "->";
-			}
 		}
 		s=s+"XXX";
 		return s;

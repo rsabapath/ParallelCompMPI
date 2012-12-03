@@ -1,0 +1,6 @@
+Exception in thread "main" java.io.FileNotFoundException: single.txt (No such file or directory)
+	at java.io.FileInputStream.open(Native Method)
+	at java.io.FileInputStream.<init>(FileInputStream.java:138)
+	at java.io.FileInputStream.<init>(FileInputStream.java:97)
+	at java.io.FileReader.<init>(FileReader.java:58)
+	at singleThread.main(singleThread.java:25)
