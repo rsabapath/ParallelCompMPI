@@ -30,14 +30,17 @@ public class mpiSolution implements Runnable {
 
 	public static void main(String args[]) throws Exception {
 		long startTime = System.nanoTime();
+		//start the mpi application
 		MPI.Init(args);
 		me = MPI.COMM_WORLD.Rank();
 		size = MPI.COMM_WORLD.Size();
+		//the following are used for the threads
 		threadComm = new boolean[size];
 		threadComm[me] = true;
 
 		int[][] graph = create_graph();
 		int[][] costGraph = new int[n][n];
+		//start all the communication threads
 		for (int i = 0; i < size; i++) {
 			if (i == me) {
 				continue;
@@ -45,23 +48,20 @@ public class mpiSolution implements Runnable {
 			(new Thread(new mpiSolution())).start();
 		}
 
-		if (start != null) { // assuming that this cluster contains the start
-								// node
+		if (start != null) { 
+		// assuming that this cluster contains the start
+		// node
 			graphStart();
 		} else if (last != null) {
-			graphEnd(); // TODO : RATHESH, this function can essentially be the
-						// opposite of graphStart? Add all of the final nodes
-						// from paths at this point to the queue and proceed!!
+
+		// assuming that this cluster contains the end node
+			graphEnd(); 
 		} else {
+			//assuming has neither start or end node
 			graphIntermidiate();
 		}
 
-		int divsionOfLabour = n; // size;
-		if (me == 0) {
-			// int[] message = { 1, 2, 3, 4 };
-			// MPI.COMM_WORLD.Isend(message, 0, message.length, MPI.INT, 1, me);
-		}
-
+    //Close the communication threads
 		int[] message = new int[n + 2];
 		message[0] = 9999;
 		for (int i = 0; i < size; i++) {
@@ -72,17 +72,25 @@ public class mpiSolution implements Runnable {
 		}
 		while (doClose())
 			;
+
+		//start best cost analysis
 		int bestCost = 9999;
 		Path bestPath = null;
 
 		if (start != null) {
-
+      //while you still have a path to check
 			while (paths.size() != 0) {
+			  //get the path
 				Path p = paths.remove(0);
+				//for each path recieved check if there is a connection
 				for (Path outP : commPaths) {
+				//is there is a edge between two paths
 					if (p.getLast().getValue() == outP.getStart().getValue()) {
+					//check if path is of lower cost
 						if (p.getCost() + outP.getCost() < bestCost) {
+							//check if last edge is contained
 							if (outP.getLast().getValue() != end) {
+								//if no add new path to paths
 								ArrayList<Node> nodes = new ArrayList<Node>();
 								nodes.addAll(p.getNodes());
 								nodes.addAll(outP.getNodes());
@@ -92,6 +100,7 @@ public class mpiSolution implements Runnable {
 								paths.add(current);
 
 							} else {
+								//else take note of new shortest path
 								ArrayList<Node> nodes = new ArrayList<Node>();
 								nodes.addAll(p.getNodes());
 								nodes.addAll(outP.getNodes());
@@ -104,7 +113,7 @@ public class mpiSolution implements Runnable {
 
 				}
 			}
-
+      //following is just for pretty print of result
 			String p = "";
 			if (bestPath != null) {
 				List<Node> nodes = bestPath.getNodes();

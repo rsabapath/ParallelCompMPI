@@ -1,0 +1,2 @@
+javacmpi mpiSolution.java
+mpjrun -np 2 mpiSolution
