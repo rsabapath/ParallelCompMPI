@@ -139,7 +139,7 @@ public class mpiSolution implements Runnable {
 		}
 		MPI.Finalize();
 	}
-
+  //This method is used to calculate the best path fro intermidiate nodes
 	private static void graphIntermidiate() {
 		LinkedList<Node> queue = new LinkedList<Node>();
 		for (int i = 0; i < incomingNodes.size(); i++) {
@@ -437,7 +437,7 @@ public class mpiSolution implements Runnable {
 		}
 
 	}
-
+//checks if all threads are closed
 	private static synchronized boolean doClose() { // public static
 		if (closedThreads == size) {
 			return false;
@@ -446,17 +446,19 @@ public class mpiSolution implements Runnable {
 		}
 
 	}
-
+//counts closed threads
 	private static synchronized void closed() {
 
 		closedThreads++;
 
 	}
-
+//add path to paths from other nodes
 	private static synchronized void addToList(Path path) {
 		commPaths.add(path);
 	}
 
+//this is for threads and all it does is read messages recieved and adds 
+//it to commPaths
 	@Override
 	public void run() {
 		int myDuty = assignment();
@@ -520,7 +522,7 @@ public class mpiSolution implements Runnable {
 	 * Note: the file is read based off its rank. So process of Rank 0 reads
 	 * 0.txt, and
 	 */
-
+//creates the graph based off text files
 	public static int[][] create_graph() {
 		int[][] graph = null;
 
@@ -554,21 +556,6 @@ public class mpiSolution implements Runnable {
 				}
 			}
 
-			// if (me * (n / size) <= startingNode && startingNode < (me + 1) *
-			// (n / size)) {
-			// start = nodes.get(startingNode % (n / size));
-			// }
-			// if (me * (n / size) <= endingNode && endingNode < (me + 1) * (n /
-			// size)) {
-			// last = nodes.get(endingNode % (n / size));
-			// }
-			// old data
-			/*
-			 * graph = new int[numNodes][numNodes]; next = new
-			 * int[numNodes][numNodes]; for (int i = 0; i < numNodes; i++) { for
-			 * (int j = 0; j < numNodes; j++) { next[i][j] = 9999; if (i == j) {
-			 * graph[i][j] = 0; } else { graph[i][j] = 9999; } } }
-			 */
 			boolean[] incoming = new boolean[n];
 			while ((line = in.readLine()) != null) {
 				items = line.split(" ");
@@ -589,15 +576,6 @@ public class mpiSolution implements Runnable {
 				} else {
 					node2 = new Node(nodeB);
 				}
-				/*
-				 * if (me == 0) { // cluster with start node node =
-				 * getNode(nodeA);
-				 * 
-				 * if (isAccessible(nodeB)) { node2 = getNode(nodeB); } else {
-				 * node2 = new Node(nodeB); } } else { // cluster with end node
-				 * if (isAccessible(nodeA)) { node = getNode(nodeA); } else {
-				 * node = new Node(nodeA); } node2 = getNode(nodeB); }
-				 */
 				
 				node.addNext(node2, edgeWeight);
 				if (nodeA < (n / size) * (me)
@@ -618,7 +596,7 @@ public class mpiSolution implements Runnable {
 
 		return graph;
 	}
-
+//this method check is node is in its graph or external
 	public static boolean isAccessible(int nodeValue) {
 		for (Node n : nodes) {
 			if (n.getValue() == nodeValue) {
@@ -627,7 +605,7 @@ public class mpiSolution implements Runnable {
 		}
 		return false;
 	}
-
+//get node
 	public static Node getNode(int nodeValue) {
 		for (Node n : nodes) {
 			if (n.getValue() == nodeValue) {
@@ -636,7 +614,7 @@ public class mpiSolution implements Runnable {
 		}
 		return null;
 	}
-
+//creates a new path
 	public static void path(int i, int j, int[][] graph) {
 		if (graph[i][j] > 9000) {
 			System.out.println("no path");
